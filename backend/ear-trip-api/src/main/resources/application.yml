@@ -1,0 +1,43 @@
+spring:
+  profiles:
+    active: local
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data.sql
+
+toss:
+  secret-key: ${TOSS_SECRET_KEY:test_sk_XXXXXXXXXXXXXXXX}
+
+app:
+  cors:
+    frontend: ${FRONTEND_ORIGIN:http://localhost:5173}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:mem:eartrip;MODE=MySQL
+    driver-class-name: org.h2.Driver
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/eartrip
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
