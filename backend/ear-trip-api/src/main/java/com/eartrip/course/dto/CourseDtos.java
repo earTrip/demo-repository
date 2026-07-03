@@ -1,7 +1,9 @@
 package com.eartrip.course.dto;
 
 import com.eartrip.course.domain.Course;
+import com.eartrip.course.domain.EventType;
 import com.eartrip.course.domain.Scene;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -32,4 +34,13 @@ public class CourseDtos {
 
     public record Detail(Long id, String title, String region, int durationMin,
                          double distanceKm, boolean owned, List<SceneView> scenes) {}
+
+    /** 완주율 계측 이벤트 기록 요청 (모바일 오프라인 이벤트 큐가 posting) */
+    public record PlaybackEventRequest(
+            @NotNull String sessionId,
+            Integer sceneOrder,   // COURSE_* 이벤트는 null 허용
+            @NotNull EventType eventType
+    ) {}
+
+    public record CourseStats(long starts, long completions, double completionRate) {}
 }

@@ -17,6 +17,7 @@ public class Scene {
     private String title;
     private double lat;
     private double lng;
+    @Column(name = "radius_m", nullable = false)
     private int radiusM;
     private String audioUrl;
 }

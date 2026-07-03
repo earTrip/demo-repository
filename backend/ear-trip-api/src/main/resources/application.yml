@@ -3,12 +3,22 @@ spring:
     active: local
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
+  flyway:
+    enabled: true
   sql:
     init:
       mode: always
       data-locations: classpath:data.sql
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Supabase 프로젝트 생성 후 실제 project-ref로 교체.
+          # 프로젝트가 구형(공유 HS256 시크릿) 방식이면 jwk-set-uri 대신
+          # SecurityConfig에서 NimbusJwtDecoder.withSecretKey(...)로 전환할 것.
+          jwk-set-uri: ${SUPABASE_JWKS_URI:https://YOUR_PROJECT_REF.supabase.co/auth/v1/.well-known/jwks.json}
 
 toss:
   secret-key: ${TOSS_SECRET_KEY:test_sk_XXXXXXXXXXXXXXXX}
@@ -35,9 +45,6 @@ spring:
     url: jdbc:mysql://${DB_HOST:localhost}:3306/eartrip
     username: ${DB_USER}
     password: ${DB_PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: validate
   sql:
     init:
       mode: never
