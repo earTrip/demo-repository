@@ -8,12 +8,14 @@ export const MOCK_COURSE = {
   id: 1,
   title: '새벽, 자갈치',
   region: '자갈치',
+  // triggerType/dwellSec/estimatedSec: 큐시트 B-1 트리거 설계 —
+  // S3·S4는 59m 간격(S1↔S3 48m) 밀집 지역이라 3초 체류(dwell) 후 발동해 GPS 오탐을 막는다.
   scenes: [
-    { sceneId: 1, order: 1, title: '자갈밭 위의 좌판', lat: 35.0972, lng: 129.0298, radiusM: 25, audioUrl: '/audio/s1.wav' },
-    { sceneId: 2, order: 2, title: '삼경에 일어나는 사람들', lat: 35.0938, lng: 129.0272, radiusM: 30, audioUrl: '/audio/s2.wav' },
-    { sceneId: 3, order: 3, title: '버려지던 것들', lat: 35.0968, lng: 129.0300, radiusM: 20, audioUrl: '/audio/s3.wav' },
-    { sceneId: 4, order: 4, title: '오이소, 보이소', lat: 35.0966, lng: 129.0306, radiusM: 20, audioUrl: '/audio/s4.wav' },
-    { sceneId: 5, order: 5, title: '다리가 열리던 시절', lat: 35.0975, lng: 129.0345, radiusM: 30, audioUrl: '/audio/s5.wav' },
+    { sceneId: 1, order: 1, title: '자갈밭 위의 좌판', lat: 35.0972, lng: 129.0298, radiusM: 25, triggerType: 'enter', estimatedSec: 45, audioUrl: '/audio/s1.wav' },
+    { sceneId: 2, order: 2, title: '삼경에 일어나는 사람들', lat: 35.0938, lng: 129.0272, radiusM: 30, triggerType: 'enter', estimatedSec: 60, audioUrl: '/audio/s2.wav' },
+    { sceneId: 3, order: 3, title: '버려지던 것들', lat: 35.0968, lng: 129.0300, radiusM: 20, triggerType: 'dwell', dwellSec: 3, estimatedSec: 45, audioUrl: '/audio/s3.wav' },
+    { sceneId: 4, order: 4, title: '오이소, 보이소', lat: 35.0966, lng: 129.0306, radiusM: 20, triggerType: 'dwell', dwellSec: 3, estimatedSec: 240, audioUrl: '/audio/s4.wav' },
+    { sceneId: 5, order: 5, title: '다리가 열리던 시절', lat: 35.0975, lng: 129.0345, radiusM: 30, triggerType: 'enter', estimatedSec: 40, audioUrl: '/audio/s5.wav' },
   ],
 };
 

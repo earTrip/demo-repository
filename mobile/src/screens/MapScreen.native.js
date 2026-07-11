@@ -67,14 +67,15 @@ export default function MapScreen({ route, navigation }) {
             <Polyline coordinates={points} strokeColor="#2f6bff" strokeWidth={4} lineDashPattern={[10, 8]} lineCap="round" />
           )}
 
+          {/* dwell(체류 트리거) 씬은 주황으로 구분 — 밀집 지역 오탐 방지 반경임을 지도에서 바로 확인 */}
           {scenes.map((s) => (
             <Circle
               key={`r-${s.sceneId}`}
               center={{ latitude: s.lat, longitude: s.lng }}
               radius={s.radiusM}
-              strokeColor="#2f6bff"
+              strokeColor={s.triggerType === 'dwell' ? '#e8873a' : '#2f6bff'}
               strokeWidth={1}
-              fillColor="rgba(47,107,255,0.08)"
+              fillColor={s.triggerType === 'dwell' ? 'rgba(232,135,58,0.10)' : 'rgba(47,107,255,0.08)'}
             />
           ))}
 

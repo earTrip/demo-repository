@@ -19,6 +19,7 @@ export function useGeofencePlayer(courseId) {
   const srcMap = useRef(null);
   const played = useRef(new Set());
   const watchId = useRef(null);
+  const dwellTimer = useRef(null);
   const sessionId = useRef(crypto.randomUUID());
 
   const setCourseStore = usePlayerStore((s) => s.setCourse);
@@ -34,9 +35,9 @@ export function useGeofencePlayer(courseId) {
   );
 
   const onPosition = useCallback(
-    (lat, lng) => {
+    (lat, lng, nowMs = Date.now()) => {
       if (!tracker.current) return;
-      for (const scene of tracker.current.update(lat, lng)) {
+      for (const scene of tracker.current.update(lat, lng, nowMs)) {
         if (played.current.has(scene.sceneId)) continue; // 1회성
         played.current.add(scene.sceneId);
         setPlayedCount(played.current.size);
@@ -44,6 +45,12 @@ export function useGeofencePlayer(courseId) {
         setQueue((course?.scenes ?? []).filter((s) => !played.current.has(s.sceneId)));
         queue.current.enqueue(scene, srcMap.current.get(scene.sceneId));
         emit("SCENE_ENTER", scene.order);
+      }
+      // dwell(체류) 대기 중이면 타이머로 재판정 — 정지 상태에선 watchPosition 이벤트가 안 올 수 있음
+      clearTimeout(dwellTimer.current);
+      const remainMs = tracker.current.pendingDwellMs(nowMs);
+      if (remainMs != null) {
+        dwellTimer.current = setTimeout(() => onPosition(lat, lng), remainMs + 250);
       }
     },
     [emit, setTrack, setQueue, course]
@@ -83,15 +90,23 @@ export function useGeofencePlayer(courseId) {
     }
   }, [courseId, emit, onPosition, setCourseStore, attachAudioQueue, play]);
 
-  // 데스크톱 검증용: 실제 GPS 없이 해당 지점 좌표로 진입을 시뮬레이트
+  // 데스크톱 검증용: 실제 GPS 없이 해당 지점 좌표로 진입을 시뮬레이트.
+  // dwell 씬은 체류 시간을 채운 시각을 한 번 더 넣어 즉시 발동시킨다(3초 대기 없이 검증).
   const simulateEnter = useCallback(
-    (scene) => onPosition(scene.lat, scene.lng),
+    (scene) => {
+      const now = Date.now();
+      onPosition(scene.lat, scene.lng, now);
+      if (scene.triggerType === "dwell") {
+        onPosition(scene.lat, scene.lng, now + (scene.dwellSec ?? 3) * 1000 + 1);
+      }
+    },
     [onPosition]
   );
 
   useEffect(
     () => () => {
       if (watchId.current != null) navigator.geolocation.clearWatch(watchId.current);
+      clearTimeout(dwellTimer.current);
     },
     []
   );

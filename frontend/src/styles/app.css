@@ -226,6 +226,11 @@ button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .scene-item { width: 100%; display: flex; align-items: center; gap: 10px; background: var(--card); border: 0; border-radius: 14px; box-shadow: var(--shadow); padding: 13px 14px; font-family: inherit; font-size: 14px; cursor: pointer; text-align: left; }
 .scene-item__no { width: 24px; height: 24px; border-radius: 50%; background: var(--sky); color: var(--blue-deep); font-weight: 800; font-size: 12px; display: grid; place-items: center; flex: 0 0 auto; }
 .scene-item__title { flex: 1; font-weight: 600; }
+.scene-item__body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.scene-item__body .scene-item__title { flex: none; }
+.scene-item__sub { font-size: 11px; color: var(--ink-soft); display: flex; gap: 6px; align-items: center; }
+.trigger-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 8px; background: var(--sky); color: var(--blue-deep); }
+.trigger-badge--dwell { background: #fff1e0; color: #b3641d; }
 .scene-item--locked { opacity: .55; }
 .scene-item--locked .scene-item__no { background: #eceef6; color: var(--ink-soft); }
 .scene-item--current { outline: 2px solid var(--blue); }

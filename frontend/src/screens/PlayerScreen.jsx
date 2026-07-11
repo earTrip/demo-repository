@@ -60,7 +60,19 @@ export default function PlayerScreen({ courseId = 1 }) {
                 aria-label={s.locked ? `${s.title} — 구매 후 이용 가능` : s.title}
               >
                 <span className="scene-item__no">{s.order}</span>
-                <span className="scene-item__title">{s.title}</span>
+                <span className="scene-item__body">
+                  <span className="scene-item__title">{s.title}</span>
+                  <span className="scene-item__sub">
+                    <span className={`trigger-badge ${s.triggerType === "dwell" ? "trigger-badge--dwell" : ""}`}>
+                      {s.triggerType === "dwell" ? `${s.dwellSec ?? 3}초 체류` : "진입 즉시"}
+                    </span>
+                    {s.estimatedSec != null && (
+                      <span>
+                        낭독 약 {s.estimatedSec >= 60 ? `${Math.floor(s.estimatedSec / 60)}분 ${s.estimatedSec % 60 || ""}${s.estimatedSec % 60 ? "초" : ""}`.trim() : `${s.estimatedSec}초`}
+                      </span>
+                    )}
+                  </span>
+                </span>
                 <span className="scene-item__icon" aria-hidden>
                   {s.locked ? "🔒" : current && isPlaying ? "⏸" : "▶"}
                 </span>

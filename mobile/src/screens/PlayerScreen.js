@@ -97,7 +97,14 @@ export default function PlayerScreen({ route }) {
     };
   }, [courseId]);
 
-  const simulateEnter = (scene) => onPosition(scene.lat, scene.lng);
+  // dwell 씬은 체류 시간을 채운 시각을 한 번 더 넣어 즉시 발동시킨다(3초 대기 없이 배선 검증).
+  const simulateEnter = (scene) => {
+    const now = Date.now();
+    onPosition(scene.lat, scene.lng, now);
+    if (scene.triggerType === 'dwell') {
+      onPosition(scene.lat, scene.lng, now + (scene.dwellSec ?? 3) * 1000 + 1);
+    }
+  };
 
   if (loadError) {
     return (
@@ -146,6 +153,8 @@ export default function PlayerScreen({ route }) {
             >
               <Text style={styles.buttonText}>
                 {locked ? '🔒 ' : ''}S{scene.order} 진입 · {scene.title}
+                {scene.triggerType === 'dwell' ? ` · ${scene.dwellSec ?? 3}초 체류` : ''}
+                {scene.estimatedSec != null ? ` · 낭독 약 ${scene.estimatedSec}초` : ''}
               </Text>
             </TouchableOpacity>
           );

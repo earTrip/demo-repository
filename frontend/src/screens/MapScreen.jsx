@@ -70,13 +70,20 @@ export default function MapScreen({ courseId = 1 }) {
               key={`r-${s.sceneId}`}
               center={[s.lat, s.lng]}
               radius={s.radiusM}
-              pathOptions={{ color: "#2f6bff", weight: 1, fillColor: "#2f6bff", fillOpacity: 0.08 }}
+              /* dwell(체류 트리거) 씬은 주황으로 구분 — 밀집 지역 오탐 방지 반경임을 지도에서 바로 확인 */
+              pathOptions={
+                s.triggerType === "dwell"
+                  ? { color: "#e8873a", weight: 1, fillColor: "#e8873a", fillOpacity: 0.1 }
+                  : { color: "#2f6bff", weight: 1, fillColor: "#2f6bff", fillOpacity: 0.08 }
+              }
             />
           ))}
 
           {scenes.map((s) => (
             <Marker key={s.sceneId} position={[s.lat, s.lng]} icon={numberIcon(s.order, s.sceneId === activeSceneId)}>
-              <Tooltip direction="top" offset={[0, -28]}>{`S${s.order} ${s.title} · 반경 ${s.radiusM}m`}</Tooltip>
+              <Tooltip direction="top" offset={[0, -28]}>
+                {`S${s.order} ${s.title} · 반경 ${s.radiusM}m · ${s.triggerType === "dwell" ? `${s.dwellSec ?? 3}초 체류` : "진입 즉시"}`}
+              </Tooltip>
             </Marker>
           ))}
 
