@@ -5,11 +5,15 @@ import { fetchCourse } from '../api/courseApi';
 import { MOCK_COURSE } from '../data/mockCourse';
 
 /** 웹 MapScreen.jsx(react-leaflet)를 react-native-maps로 이식 */
-export default function MapScreen({ route }) {
+export default function MapScreen({ route, navigation }) {
   const courseId = route?.params?.courseId ?? MOCK_COURSE.id;
   const [course, setCourseData] = useState(null);
   const [query, setQuery] = useState('');
   const mapRef = useRef(null);
+
+  const openScene = () => {
+    navigation.navigate('Player', { courseId, courseTitle: course?.title });
+  };
 
   useEffect(() => {
     fetchCourse(courseId)
@@ -78,8 +82,7 @@ export default function MapScreen({ route }) {
             <Marker
               key={s.sceneId}
               coordinate={{ latitude: s.lat, longitude: s.lng }}
-              title={`S${s.order} ${s.title}`}
-              description={`반경 ${s.radiusM}m`}
+              onPress={openScene}
             >
               <View style={styles.pin}>
                 <Text style={styles.pinText}>{s.order}</Text>

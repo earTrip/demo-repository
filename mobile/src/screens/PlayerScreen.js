@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Location from 'expo-location';
 
 import { useCourseStore } from '../store/courseStore';
@@ -53,6 +53,22 @@ export default function PlayerScreen({ route }) {
   const userId = useAuthSession((s) => s.session?.user?.id);
   const { loaded: accessLoaded, hasAccess, freeSceneOrders, canPlayScene, reload: reloadAccess } = useAccess(courseId);
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [trackingStatus, setTrackingStatus] = useState('idle'); // idle|active|denied
+
+  const startBackgroundTracking = async () => {
+    const fg = await Location.requestForegroundPermissionsAsync();
+    if (fg.status !== 'granted') {
+      setTrackingStatus('denied');
+      return;
+    }
+    const bg = await Location.requestBackgroundPermissionsAsync();
+    if (bg.status !== 'granted') {
+      setTrackingStatus('denied'); // 항상 허용 미승인 시 배경 추적 불가
+      return;
+    }
+    await startTracking();
+    setTrackingStatus('active');
+  };
 
   useEffect(() => {
     useAuthSession.getState().init(); // Supabase 프로젝트 미설정이면 fail-open (콘솔 경고만)
@@ -68,18 +84,20 @@ export default function PlayerScreen({ route }) {
       const srcMap = await loadAudio(data.scenes);
       useCourseStore.getState().init(data, srcMap, `session-${Date.now()}`);
       setReady(true);
+
+      // 코스 진입 시 바로 백그라운드 GPS 추적 시작 — 지점 반경에 들어오면 자동 재생됨.
+      // 웹은 배경 위치 API 자체가 없어 건너뜀(startTracking이 내부적으로도 no-op 처리함).
+      if (Platform.OS !== 'web') {
+        await startBackgroundTracking();
+      }
     })();
+
+    return () => {
+      stopTracking();
+    };
   }, [courseId]);
 
   const simulateEnter = (scene) => onPosition(scene.lat, scene.lng);
-
-  const startBackgroundTracking = async () => {
-    const fg = await Location.requestForegroundPermissionsAsync();
-    if (fg.status !== 'granted') return;
-    const bg = await Location.requestBackgroundPermissionsAsync();
-    if (bg.status !== 'granted') return; // 항상 허용 미승인 시 배경 추적 불가
-    await startTracking();
-  };
 
   if (loadError) {
     return (
@@ -112,6 +130,9 @@ export default function PlayerScreen({ route }) {
         <Text style={styles.meta}>
           access: {!accessLoaded ? '확인 중...' : `hasAccess=${hasAccess} free=${freeSceneOrders.join(',')}`}
         </Text>
+        <Text style={styles.meta}>
+          GPS 자동 재생: {trackingStatus === 'active' ? '켜짐 (지점 도착 시 자동 재생)' : trackingStatus === 'denied' ? '위치 권한 거부됨' : '대기 중'}
+        </Text>
 
         <Text style={styles.section}>지점 진입 시뮬레이트 (순서대로)</Text>
         {course.scenes.map((scene) => {
@@ -130,11 +151,17 @@ export default function PlayerScreen({ route }) {
           );
         })}
 
-        <Text style={styles.section}>실제 백그라운드 GPS (현장 보행 QA용)</Text>
+        <Text style={styles.section}>실제 백그라운드 GPS (자동 시작됨 · 수동 제어용)</Text>
         <TouchableOpacity style={styles.button} onPress={startBackgroundTracking}>
-          <Text style={styles.buttonText}>배경 추적 시작</Text>
+          <Text style={styles.buttonText}>배경 추적 다시 시작</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={stopTracking}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => {
+            stopTracking();
+            setTrackingStatus('idle');
+          }}
+        >
           <Text style={styles.buttonText}>배경 추적 중지</Text>
         </TouchableOpacity>
 
