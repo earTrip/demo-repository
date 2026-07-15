@@ -100,9 +100,9 @@ export default function PlayerScreen({ route }) {
   // dwell 씬은 체류 시간을 채운 시각을 한 번 더 넣어 즉시 발동시킨다(3초 대기 없이 배선 검증).
   const simulateEnter = (scene) => {
     const now = Date.now();
-    onPosition(scene.lat, scene.lng, now);
+    onPosition(scene.lat, scene.lng, 0, now);
     if (scene.triggerType === 'dwell') {
-      onPosition(scene.lat, scene.lng, now + (scene.dwellSec ?? 3) * 1000 + 1);
+      onPosition(scene.lat, scene.lng, 0, now + (scene.dwellSec ?? 3) * 1000 + 1);
     }
   };
 

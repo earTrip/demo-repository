@@ -3,9 +3,9 @@ import { postEvent } from '../api/courseApi';
 
 const KEY = 'pending-events';
 
-// TODO: /api/courses/{id}/events 엔드포인트가 현재 백엔드(com.eartrip)에 없음 —
-// react_native_백그라운드_설계.md의 이벤트 큐는 구형 backend/(com.hearbusan)의
-// PlaybackEvent API를 전제로 함. 어느 쪽을 정본으로 쓸지 확인 후 postEvent 대상 교체할 것.
+// 정본: com.eartrip의 CourseController POST /api/courses/{id}/events.
+// payload는 CourseDtos.PlaybackEventRequest(sessionId, sceneOrder, eventType) 형태여야 하며
+// sessionId·eventType은 @NotNull이라 누락/오타 시 400이다 (구형 com.hearbusan 백엔드는 제거됨).
 
 /** 완주율 계측 이벤트. 오프라인이면 로컬 큐에 적재 후 다음 flush에서 재시도 */
 export async function logEvent(courseId, payload) {

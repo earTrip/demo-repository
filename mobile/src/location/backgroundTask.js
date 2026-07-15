@@ -10,8 +10,8 @@ const LOC_TASK = 'course-location-task';
 if (Platform.OS !== 'web') {
   TaskManager.defineTask(LOC_TASK, ({ data, error }) => {
     if (error || !data) return;
-    const { latitude, longitude } = data.locations.at(-1).coords;
-    useCourseStore.getState().onPosition(latitude, longitude);
+    const { latitude, longitude, accuracy } = data.locations.at(-1).coords;
+    useCourseStore.getState().onPosition(latitude, longitude, accuracy);
   });
 }
 

@@ -3,25 +3,47 @@
 **스택:** Java 21 · Spring Boot 3.3 · MySQL · JUnit 5 / React
 **설계 원칙:** SOLID, 메서드 분리, 오프라인 우선, 완주율 계측 내장
 
+아래는 이 문서의 설계가 실제로 안착한 저장소 구조다 (백엔드는 `ear-trip-api` 단일 모듈 —
+구형 `com.hearbusan` 백엔드는 PlaybackEvent를 이식한 뒤 은퇴했다).
+
 ```
-geofence-engine/
-├─ backend/  (Spring Boot)
-│  └─ com.travelbyear.geofence
-│     ├─ domain/        Course, Scene, PlaybackEvent, EventType
-│     ├─ repository/    CourseRepository, PlaybackEventRepository
-│     ├─ dto/           CourseResponse, SceneResponse, PlaybackEventRequest, CourseStats
-│     ├─ service/       CourseService, PlaybackEventService, GeoUtils
-│     ├─ web/           CourseController, ApiExceptionHandler, NotFoundException
-│     └─ resources/     application.yml, data.sql
-│  └─ test/             GeoUtilsTest
-└─ frontend/ (React)
+Ear-Trip/
+├─ backend/ear-trip-api/   (Spring Boot 3.3 · Java 21)
+│  └─ com.eartrip
+│     ├─ common/           SecurityConfig, CorsConfig, ApiExceptionHandler
+│     ├─ course/
+│     │  ├─ domain/        Course, Scene, PlaybackEvent, EventType
+│     │  ├─ repository/    CourseRepository, PlaybackEventRepository
+│     │  ├─ dto/           CourseDtos (Summary, Detail, PlaybackEventRequest, CourseStats)
+│     │  ├─ service/       PlaybackEventService
+│     │  └─ controller/    CourseController
+│     └─ payment/          (토스 결제·이용권 — 이 문서 범위 밖)
+│        ├─ domain/        PurchaseOrder, Payment, Product, Entitlement
+│        ├─ infra/         TossPaymentsClient
+│        ├─ service/       PaymentConfirmService, PaymentConfirmProcessor, EntitlementService
+│        └─ controller/    PaymentController
+│  ├─ resources/           application.yml, data.sql, db/migration/ (Flyway)
+│  └─ test/                PlaybackEventContractTest, PaymentConfirm{Service,Processor}Test
+├─ frontend/               (React 18 · Vite — 웹 검증장)
+│  ├─ src/
+│  │  ├─ api/courseApi.js
+│  │  ├─ utils/geo.js            히스테리시스 트래커 (+dwell)
+│  │  ├─ audio/AudioQueue.js
+│  │  ├─ offline/prefetch.js
+│  │  ├─ hooks/useGeofencePlayer.js
+│  │  ├─ store/playerStore.js
+│  │  ├─ screens/               Home, Map, Player
+│  │  ├─ payment/               Paywall, useAccess, paymentApi
+│  │  └─ qa/                    QaOverlay (현장 보행 QA)
+│  └─ tests/geo.test.mjs         node --test
+└─ mobile/                 (Expo React Native — 배경 실행 계층)
    └─ src/
-      ├─ api/courseApi.js
-      ├─ utils/geo.js
-      ├─ audio/AudioQueue.js
-      ├─ offline/prefetch.js
-      ├─ hooks/useGeofencePlayer.js
-      └─ components/CoursePlayer.jsx
+      ├─ utils/geo.js            frontend와 동일 계약 (함께 수정할 것)
+      ├─ location/backgroundTask.js
+      ├─ store/courseStore.js
+      ├─ player/trackQueue.js
+      ├─ offline/                download, eventQueue
+      └─ auth/                   supabaseClient, LargeSecureStore
 ```
 
 ---

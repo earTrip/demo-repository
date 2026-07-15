@@ -29,10 +29,10 @@ export const useCourseStore = create((set, get) => ({
     logEvent(course.id, { sessionId, eventType: 'COURSE_START' });
   },
 
-  onPosition(lat, lng, nowMs = Date.now()) {
+  onPosition(lat, lng, accuracyM, nowMs = Date.now()) {
     const { tracker, played, srcMap, course, sessionId, dwellTimer } = get();
     if (!tracker) return;
-    for (const scene of tracker.update(lat, lng, nowMs)) {
+    for (const scene of tracker.update(lat, lng, accuracyM, nowMs)) {
       if (played.has(scene.sceneId)) continue; // 1회성
       played.add(scene.sceneId);
       enqueueScene(scene, srcMap.get(scene.sceneId), course.title);
@@ -44,13 +44,15 @@ export const useCourseStore = create((set, get) => ({
     clearTimeout(dwellTimer);
     const remainMs = tracker.pendingDwellMs(nowMs);
     if (remainMs != null) {
-      set({ dwellTimer: setTimeout(() => get().onPosition(lat, lng), remainMs + 250) });
+      set({ dwellTimer: setTimeout(() => get().onPosition(lat, lng, accuracyM), remainMs + 250) });
     }
   },
 
   onSceneComplete(sceneId) {
     const { course, sessionId } = get();
-    logEvent(course.id, { sessionId, sceneId, eventType: 'SCENE_COMPLETE' });
+    // 백엔드 PlaybackEventRequest는 sceneId가 아니라 sceneOrder를 받는다 (@NotNull eventType과 함께).
+    const sceneOrder = course.scenes.find((s) => s.sceneId === sceneId)?.order ?? null;
+    logEvent(course.id, { sessionId, sceneOrder, eventType: 'SCENE_COMPLETE' });
     const last = course.scenes[course.scenes.length - 1];
     if (sceneId === last.sceneId) {
       logEvent(course.id, { sessionId, eventType: 'COURSE_COMPLETE' });
