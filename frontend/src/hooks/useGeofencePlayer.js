@@ -10,8 +10,10 @@ import { usePlayerStore } from "../store/playerStore";
  * AudioQueue 재생 → usePlayerStore(zustand)에 반영 → 완주율 이벤트 기록.
  *
  * @param {number} courseId
- * @param {{ onLockedEnter?: (scene) => void }} [options]
+ * @param {{ onLockedEnter?: (scene) => void, course?: object }} [options]
  *        onLockedEnter — 잠금 씬 지오펜스 진입 시 호출 (페이월 노출용)
+ *        course — 화면이 이미 받아둔 코스. 있으면 start()가 다시 받지 않는다.
+ *                 (구매 직후엔 갱신된 코스를 넘겨 재시작하면 잠금이 풀린 오디오가 프리페치된다)
  */
 export function useGeofencePlayer(courseId, options = {}) {
   const [status, setStatus] = useState("idle"); // idle|loading|active|completed
@@ -27,8 +29,11 @@ export function useGeofencePlayer(courseId, options = {}) {
   const dwellTimer = useRef(null);
   const sessionId = useRef(crypto.randomUUID());
   const courseRef = useRef(null); // onPosition 클로저의 stale course 방지
+  const startedRef = useRef(false); // COURSE_START 중복 방지 (구매 후 재시작)
   const onLockedEnterRef = useRef(options.onLockedEnter);
   onLockedEnterRef.current = options.onLockedEnter;
+  const preloadedRef = useRef(options.course);
+  preloadedRef.current = options.course;
 
   const setCourseStore = usePlayerStore((s) => s.setCourse);
   const setTrack = usePlayerStore((s) => s.setTrack);
@@ -75,7 +80,7 @@ export function useGeofencePlayer(courseId, options = {}) {
 
   const start = useCallback(async () => {
     setStatus("loading");
-    const data = await fetchCourse(courseId);
+    const data = preloadedRef.current ?? (await fetchCourse(courseId));
     setCourseData(data);
     courseRef.current = data;
     setCourseStore({ id: data.id, title: data.title, region: data.region });
@@ -100,10 +105,16 @@ export function useGeofencePlayer(courseId, options = {}) {
     attachAudioQueue(queue.current);
     queue.current.prime(); // 사용자 제스처 내에서 오디오 언락
 
-    emit("COURSE_START");
+    // 구매 후 재시작(잠금 해제분 재프리페치) 시 COURSE_START를 두 번 찍으면 완주율이 왜곡된다.
+    if (!startedRef.current) {
+      startedRef.current = true;
+      emit("COURSE_START");
+    }
     setStatus("active");
     play();
 
+    // 재시작이면 이전 구독을 반드시 해제 — 안 그러면 watch가 중첩돼 판정이 두 번 돈다.
+    if (watchId.current != null) navigator.geolocation.clearWatch(watchId.current);
     if ("geolocation" in navigator) {
       watchId.current = navigator.geolocation.watchPosition(
         (pos) => onPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
