@@ -20,7 +20,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 /** DB 단계 검증: 클레임 상태 전이·위변조 FAILED 커밋·성공 기록 */
 @ExtendWith(MockitoExtension.class)
@@ -100,6 +100,21 @@ class PaymentConfirmProcessorTest {
         assertThat(order.isPaid()).isTrue();
         verify(paymentRepository).save(argThat(p -> p.getPaymentKey().equals("pk-1") && p.getAmount() == 6900));
         verify(entitlementService).grantAll("device-1", List.of(1L), "order-1");
+    }
+
+    @Test
+    @DisplayName("recordSuccess는 멱등하다 — 회수 스윕이 겹쳐도 결제를 두 번 기록하지 않는다")
+    void recordSuccess_isIdempotent() {
+        PurchaseOrder order = pendingOrder();
+        order.markInProgress();
+        order.markPaid(); // 앞선 호출이 이미 처리
+        given(orderRepository.findWithLockByOrderId("order-1")).willReturn(Optional.of(order));
+
+        processor.recordSuccess("order-1",
+                new TossPaymentsClient.TossConfirmResponse("pk-1", "order-1", "DONE", "카드", 6900, "2026-07-16T12:00:00"));
+
+        verify(paymentRepository, never()).save(any());
+        verify(entitlementService, never()).grantAll(any(), any(), any());
     }
 
     @Test

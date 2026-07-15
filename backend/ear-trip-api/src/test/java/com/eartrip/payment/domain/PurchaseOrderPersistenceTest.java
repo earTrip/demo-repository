@@ -8,6 +8,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,5 +58,39 @@ class PurchaseOrderPersistenceTest {
             assertThat(orderRepository.findById("order-" + status).orElseThrow().getStatus())
                     .isEqualTo(status);
         }
+    }
+
+    @Test
+    @DisplayName("claimedAt이 스키마에 저장되고, 굳은 주문 조회로 회수 대상이 잡힌다")
+    void staleInProgressIsQueryable() {
+        PurchaseOrder fresh = PurchaseOrder.create("order-fresh", "device-1", EP01);
+        fresh.markInProgress();
+        orderRepository.saveAndFlush(fresh);
+
+        // 방금 클레임한 주문은 회수 대상이 아니다
+        assertThat(orderRepository.findByStatusAndClaimedAtBefore(
+                PurchaseOrder.Status.IN_PROGRESS, LocalDateTime.now().minusMinutes(2)))
+                .isEmpty();
+
+        // 2분 전에 굳은 주문은 잡힌다
+        assertThat(orderRepository.findByStatusAndClaimedAtBefore(
+                PurchaseOrder.Status.IN_PROGRESS, LocalDateTime.now().plusSeconds(1)))
+                .extracting(PurchaseOrder::getOrderId)
+                .containsExactly("order-fresh");
+
+        assertThat(orderRepository.findById("order-fresh").orElseThrow().getClaimedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("PAID로 확정되면 claimedAt이 비워져 회수 대상에서 빠진다")
+    void paidOrderLeavesStaleQueue() {
+        PurchaseOrder order = PurchaseOrder.create("order-paid", "device-1", EP01);
+        order.markInProgress();
+        order.markPaid();
+        orderRepository.saveAndFlush(order);
+
+        assertThat(orderRepository.findByStatusAndClaimedAtBefore(
+                PurchaseOrder.Status.IN_PROGRESS, LocalDateTime.now().plusSeconds(1))).isEmpty();
+        assertThat(orderRepository.findById("order-paid").orElseThrow().getClaimedAt()).isNull();
     }
 }

@@ -57,11 +57,16 @@ public class PaymentConfirmProcessor {
         return new ClaimResult(ClaimStatus.CLAIMED);
     }
 
-    /** 승인 성공 기록: 결제 스냅샷 + PAID 전이 + 이용권 발급 (원자적) */
+    /**
+     * 승인 성공 기록: 결제 스냅샷 + PAID 전이 + 이용권 발급 (원자적).
+     * 회수 스윕도 이 경로를 타므로 멱등해야 한다 — 스윕이 겹치면 같은 결제를 두 번 기록하려 든다.
+     */
     @Transactional
     public void recordSuccess(String orderId, TossPaymentsClient.TossConfirmResponse res) {
         PurchaseOrder order = orderRepository.findWithLockByOrderId(orderId)
                 .orElseThrow(() -> new IllegalStateException("주문 유실: " + orderId));
+
+        if (order.isPaid()) return; // 이미 기록됨 (행 잠금 대기 중 앞선 호출이 처리)
 
         paymentRepository.save(Payment.builder()
                 .paymentKey(res.paymentKey())
