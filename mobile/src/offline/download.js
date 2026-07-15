@@ -11,6 +11,7 @@ export async function downloadCourseAudio(scenes) {
 
   const srcMap = new Map(); // sceneId -> 로컬 file:// URI
   for (const s of scenes) {
+    if (!s.audioUrl) continue; // 잠금 씬: 서버가 audioUrl을 내리지 않는다 (null.split() 방지)
     const ext = s.audioUrl.split('.').pop().split('?')[0] || 'mp3';
     const file = new File(audioDir, `s${s.sceneId}.${ext}`);
     if (!file.exists) {

@@ -82,7 +82,9 @@ export default function PlayerScreen({ route }) {
 
       await setupPlayer((sceneId) => useCourseStore.getState().onSceneComplete(sceneId));
       const srcMap = await loadAudio(data.scenes);
-      useCourseStore.getState().init(data, srcMap, `session-${Date.now()}`);
+      // 잠금 씬 반경에 들어오면 재생 대신 페이월 — 지오펜스 경로에도 프리미엄 게이트를 건다
+      // (씬 목록의 canPlayScene은 표시용일 뿐, 자동 재생 경로는 별개다).
+      useCourseStore.getState().init(data, srcMap, `session-${Date.now()}`, () => setPaywallOpen(true));
       setReady(true);
 
       // 코스 진입 시 바로 백그라운드 GPS 추적 시작 — 지점 반경에 들어오면 자동 재생됨.

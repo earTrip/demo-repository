@@ -17,6 +17,16 @@ jobs:
       - run: npm test          # 지오펜스 트래커 단위 테스트
       - run: npm run build
 
+  mobile:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: mobile } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: mobile/package-lock.json }
+      - run: npm ci
+      - run: npm test          # courseStore 잠금 씬/완주 판정 (네이티브 계층은 목킹)
+
   backend-eartrip:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: backend/ear-trip-api } }

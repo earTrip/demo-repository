@@ -21,7 +21,8 @@ export function useGeofencePlayer(courseId, options = {}) {
   const tracker = useRef(null);
   const queue = useRef(null);
   const srcMap = useRef(null);
-  const played = useRef(new Set());
+  const played = useRef(new Set()); // 진입(큐잉)한 씬 — 재생 완료와 다르다
+  const completed = useRef(new Set()); // 재생을 마친 씬 — 완주 판정 기준
   const watchId = useRef(null);
   const dwellTimer = useRef(null);
   const sessionId = useRef(crypto.randomUUID());
@@ -82,12 +83,16 @@ export function useGeofencePlayer(courseId, options = {}) {
     srcMap.current = await prefetchAudio(data.scenes);
     tracker.current = createGeofenceTracker(data.scenes);
     played.current = new Set();
+    completed.current = new Set();
     setPlayedCount(0);
 
     const playableCount = data.scenes.filter((s) => !s.locked).length;
     queue.current = new AudioQueue((scene) => {
       emit("SCENE_COMPLETE", scene.order);
-      if (played.current.size >= playableCount) {
+      // 진입이 아니라 재생을 마친 씬으로 세야 한다 — 지점을 다 지나쳐 큐에만 쌓인 상태에서
+      // 첫 씬이 끝나면 완주로 오판한다.
+      completed.current.add(scene.sceneId);
+      if (playableCount > 0 && completed.current.size >= playableCount) {
         emit("COURSE_COMPLETE");
         setStatus("completed");
       }

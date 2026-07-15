@@ -37,7 +37,8 @@
     "start": "expo start --dev-client",
     "android": "expo start --dev-client --android",
     "ios": "expo start --dev-client --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "node --import ./tests/register.mjs --experimental-test-module-mocks --test tests/courseStore.test.mjs"
   },
   "private": true
 }
