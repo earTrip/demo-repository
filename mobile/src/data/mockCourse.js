@@ -10,12 +10,25 @@ export const MOCK_COURSE = {
   region: '자갈치',
   // triggerType/dwellSec/estimatedSec: 큐시트 B-1 트리거 설계 —
   // S3·S4는 59m 간격(S1↔S3 48m) 밀집 지역이라 3초 체류(dwell) 후 발동해 GPS 오탐을 막는다.
+  // script: 플레이어 자막 텍스트. 자갈치_EP01_대본_v2_재생성.md의 낭독분(나 V.O. + 순임 대사)을
+  // 표기 기호(/·//·⟨숨⟩·볼륨)만 걷어내고 옮긴 것. 순임 사투리 대사는 따옴표로 구분.
+  // 타임스탬프가 생기면 오디오 싱크 하이라이트를 붙인다. 제목/좌표는 녹음 확정 전이라 기존 값 유지.
   scenes: [
-    { sceneId: 1, order: 1, title: '자갈밭 위의 좌판', lat: 35.0972, lng: 129.0298, radiusM: 25, triggerType: 'enter', estimatedSec: 45, audioUrl: '/audio/s1.wav' },
-    { sceneId: 2, order: 2, title: '삼경에 일어나는 사람들', lat: 35.0938, lng: 129.0272, radiusM: 30, triggerType: 'enter', estimatedSec: 60, audioUrl: '/audio/s2.wav' },
-    { sceneId: 3, order: 3, title: '버려지던 것들', lat: 35.0968, lng: 129.0300, radiusM: 20, triggerType: 'dwell', dwellSec: 3, estimatedSec: 45, audioUrl: '/audio/s3.wav' },
-    { sceneId: 4, order: 4, title: '오이소, 보이소', lat: 35.0966, lng: 129.0306, radiusM: 20, triggerType: 'dwell', dwellSec: 3, estimatedSec: 240, audioUrl: '/audio/s4.wav' },
-    { sceneId: 5, order: 5, title: '다리가 열리던 시절', lat: 35.0975, lng: 129.0345, radiusM: 30, triggerType: 'enter', estimatedSec: 40, audioUrl: '/audio/s5.wav' },
+    { sceneId: 1, order: 1, title: '자갈밭 위의 좌판', lat: 35.0972, lng: 129.0298, radiusM: 25, triggerType: 'enter', estimatedSec: 40, audioUrl: '/audio/s1.wav',
+      script:
+'지금 밟고 계신 이 바닥, 구십 년쯤 전에는 바다였습니다. 파도에 닳아 둥글어진 자갈이 끝없이 깔려 있었대요. 그래서 ‘자갈치’, 자갈밭에서 온 이름이라고 해요. 지금 좌판이 깔린 이 자리에, 그때는 파도가 부서졌습니다.\n\n우리 어머니는… 그 전쟁통에 이 자갈밭으로 떠밀려 온 사람이었어요. 이름은 순임. 스물둘에, 등에 아기를 업고 여기 도착했습니다.\n\n왼쪽, 오래된 낮은 건물들을 따라 천천히 걸어 주세요.' },
+    { sceneId: 2, order: 2, title: '삼경에 일어나는 사람들', lat: 35.0938, lng: 129.0272, radiusM: 30, triggerType: 'enter', estimatedSec: 55, audioUrl: '/audio/s2.wav',
+      script:
+'지금 들리는 저 빠르고 낯선 노래, 경매사 소리입니다. 새벽 다섯 시, 시장이 가장 뜨거운 시간이에요.\n\n“자다가 일나모 억수로 춥제. 근데 우얄끼고. 새끼들은 입 벌리고 기다리는데. 그래 나왔다 아이가. 남들 자는 시간에.”\n\n잠깐 멈춰서, 눈을 감고 들어보세요. 전쟁이 남편을 데려간 여자들이 이 바닥에 모였어요. 고무 앞치마에, 대야 하나. 그 맨손이 이 시장을 일으켰습니다.\n\n이제 시장 안쪽, 연기가 나는 골목으로 걸어 볼게요.' },
+    { sceneId: 3, order: 3, title: '버려지던 것들', lat: 35.0968, lng: 129.0300, radiusM: 20, triggerType: 'dwell', dwellSec: 3, estimatedSec: 45, audioUrl: '/audio/s3.wav',
+      script:
+'골목을 채운 이 매캐한 연기, 곰장어 굽는 냄새입니다. 곰장어는 원래 버리던 생선이었어요. 가죽만 벗겨 쓰고, 살은 버렸대요.\n\n“돈이 있나, 밑천이 있나. 남들 버리는 거 얻어다가 구워 팔았제. 그기 인자 명물이라 카데. 우습제. 버리던 기 우리를 멕있다 아이가.”\n\n1985년, 큰불이 이 시장을 삼켰습니다. 그 재 위에서 사람들은 또 좌판을 폈어요. 몇 번을 무너져도, 다시.\n\n수조들이 늘어선 쪽으로 조금만 더 들어가 볼게요.' },
+    { sceneId: 4, order: 4, title: '오이소, 보이소', lat: 35.0966, lng: 129.0306, radiusM: 20, triggerType: 'dwell', dwellSec: 3, estimatedSec: 240, audioUrl: '/audio/s4.wav',
+      script:
+'사방에서 밀려오는 저 소리. ‘오이소, 보이소, 사이소.’ 자갈치의 그 유명한 소리요. 그런데 저는요, 이 소리가 오래 무섭게 들렸어요.\n\n“오이소—! 싱싱한 거 왔다! 보이소, 이 눈깔 좀 보소, 살아있다 아이가! 사이소!”\n\n저 소리는 사실… 살려달라는 소리였습니다. 저거 하나 팔아야 그날 애들이 밥을 먹었으니까.\n\n어릴 때 형이… 이 앞바다에 빠진 적이 있어요. 아지매들이 다 뛰어들어 건져냈죠. 어머니는 그날도 좌판을 떠나지 못했어요. 형을 안고 울면서도, 손님을 놓지 못했습니다.\n\n“미안하다 소리를… 나는 니한테 평생 못 했다. 장사한다꼬, 먹고산다꼬. 니 얼굴 제대로 볼 새도 없이.”\n\n저는 그 소리를 이제야 다르게 듣습니다. 오이소, 보이소, 사이소. …그건 살아내겠다는 소리였어요.\n\n이제 천천히, 바다 쪽 출구로 걸어 나가 볼게요.' },
+    { sceneId: 5, order: 5, title: '다리가 열리던 시절', lat: 35.0975, lng: 129.0345, radiusM: 30, triggerType: 'enter', estimatedSec: 45, audioUrl: '/audio/s5.wav',
+      script:
+'왼쪽에 보이는 저 다리, 영도대굡니다. 옛날엔 하루에도 몇 번씩, 저 상판이 하늘로 들렸대요. 들렸다가, 다시 내려앉았습니다.\n\n어머니는 몇 해 전에 돌아가셨어요. 그런데 이 시장에 오면 새벽 경매 소리에, 곰장어 냄새에… 아직 다 남아 있는 것 같아요.\n\n“왔나. 밥은 묵었나.”\n\n몇 번을 들렸다 내려앉아도 다리가 다리이듯이. 당신이 오늘 자갈치를 ‘귀로’ 걸어 주셔서, 고맙습니다.' },
   ],
 };
 
