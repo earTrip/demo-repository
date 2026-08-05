@@ -1,21 +1,29 @@
--- EP.01 자갈치 (판매 중) — 좌표: 통합작업문서 7-2
-INSERT INTO course (id, title, subtitle, region, duration_min, distance_km, thumb_key) VALUES
-  (1, '새벽, 자갈치', '자갈치 · EP.01', '자갈치', 28, 1.1, 'market');
+-- 씬에 landmark(지점명)·script(대본 자막) 추가.
+--
+-- landmark: 트리거 지점의 실제 장소명. title('자갈밭 위의 좌판')은 서사용이라
+--   보행 중 "어디로 가라"는 안내가 안 된다. 플레이어의 NEXT STOP·씬 헤더가 이 값을 쓴다.
+--   콘텐츠 가치가 없고 길 안내에 필요하므로 잠금 씬에도 내려준다.
+-- script: 씬 대본(자막). 오디오와 같은 판매 콘텐츠라 서버가 잠금 씬에는 내려주지 않는다
+--   (CourseDtos.SceneView.of 참조). varchar(8000)인 이유는 Scene.script 주석 참조.
+ALTER TABLE scene
+    ADD COLUMN landmark varchar(255) NULL;
+ALTER TABLE scene
+    ADD COLUMN script varchar(8000) NULL;
 
--- trigger_type/dwell_sec/estimated_sec: 큐시트 B-1 앱 필드.
--- S3·S4는 59m 간격(S1↔S3 48m)으로 밀집해 3초 체류를 요구한다. 나머지는 이격이 커서 진입 즉시.
--- landmark: 트리거 지점의 실제 장소명 (title은 서사용이라 보행 안내가 안 된다). V4 참조.
-INSERT INTO scene (course_id, scene_order, title, landmark, lat, lng, radius_m, trigger_type, dwell_sec, estimated_sec, audio_url) VALUES
-  (1, 1, '자갈밭 위의 좌판',      '부산 자갈치시장 입구',      35.0972, 129.0298, 25, 'ENTER', NULL,  45, '/audio/ep01_s1.mp3'),
-  (1, 2, '삼경에 일어나는 사람들', '부산공동어시장 새벽 경매장', 35.0938, 129.0272, 30, 'ENTER', NULL,  60, '/audio/ep01_s2.mp3'),
-  (1, 3, '버려지던 것들',         '곰장어 구이 골목',         35.0968, 129.0300, 20, 'DWELL',    3,  45, '/audio/ep01_s3.mp3'),
-  (1, 4, '오이소, 보이소',        '회센터 수조 앞',           35.0966, 129.0306, 20, 'DWELL',    3, 240, '/audio/ep01_s4.mp3'),
-  (1, 5, '다리가 열리던 시절',     '영도대교가 보이는 바닷가',   35.0975, 129.0345, 30, 'ENTER', NULL,  40, '/audio/ep01_s5.mp3');
+-- EP.01 자갈치 지점명 — 2026-08-05 지정값.
+-- 큐시트의 📍 트리거 지점을 보행자가 눈으로 찾을 수 있는 표현으로 다듬은 것이라 자구가 다르다.
+UPDATE scene SET landmark = CASE scene_order
+    WHEN 1 THEN '부산 자갈치시장 입구'
+    WHEN 2 THEN '부산공동어시장 새벽 경매장'
+    WHEN 3 THEN '곰장어 구이 골목'
+    WHEN 4 THEN '회센터 수조 앞'
+    WHEN 5 THEN '영도대교가 보이는 바닷가' END
+ WHERE course_id = 1;
 
--- 대본(script)은 V4 마이그레이션과 같은 내용을 다시 싣는다.
--- Flyway가 data.sql보다 먼저 돌아서 V4의 UPDATE는 로컬에선 빈 테이블을 스치고 지나간다 —
--- 즉 V4는 이미 행이 있는 환경(운영)용이고, 로컬 시드는 여기가 유일한 출처다.
--- 대본을 고칠 때는 두 곳을 함께 고칠 것. 출처: `eartrip_jagalchi_composer_input.md` (v3 확장본).
+-- EP.01 자갈치 대본 — 2026-08-05 v3 확장본(`eartrip_jagalchi_composer_input.md`).
+-- Leda(가이드) 블록은 평문, Gacrux(순임) 블록은 따옴표로 구분했고,
+-- 대괄호 연기 지시([warm]·[chuckles] 등)와 화자/블록 번호는 자막에 안 뜨게 걷어냈다.
+-- 작은따옴표는 SQL 이스케이프를 피하려고 원문대로 곡선 따옴표(’)를 쓴다.
 UPDATE scene SET script =
 '잠깐만, 거기 서 보세요. 발밑을 한번 내려다보실래요... 지금 서 계신 이 자리, 백 년 전에는... 바다였습니다.
 
@@ -167,10 +175,3 @@ UPDATE scene SET script =
 
 배가 고프시다면, 이제 아무 좌판에나 앉으세요. 그리고 아지매가 뭐가 맛있냐고 물으면, 아무거나 주이소, 해 보세요. 제일 좋은 걸 주실 겁니다. 원래 그런 분들이거든요. 다음에 또... 오이소.'
  WHERE course_id = 1 AND scene_order = 5;
-
-INSERT INTO product (code, name, price, active) VALUES
-  ('EP01', '새벽, 자갈치', 6900, true),
-  ('BUSAN_BUNDLE', '부산 3편 번들', 14900, false);
-
-INSERT INTO product_course_ids (product_code, course_ids) VALUES
-  ('EP01', 1), ('BUSAN_BUNDLE', 1), ('BUSAN_BUNDLE', 2), ('BUSAN_BUNDLE', 3);

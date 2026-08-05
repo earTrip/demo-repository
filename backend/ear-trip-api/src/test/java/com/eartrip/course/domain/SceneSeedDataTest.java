@@ -58,6 +58,33 @@ class SceneSeedDataTest {
     }
 
     @Test
+    @DisplayName("모든 씬이 지점명(landmark)을 갖는다 — 없으면 NEXT STOP이 서사용 제목으로 폴백된다")
+    void everySceneHasLandmark() {
+        assertThat(ep01Scenes()).map(Scene::getLandmark)
+                .containsExactly("부산 자갈치시장 입구", "부산공동어시장 새벽 경매장",
+                        "곰장어 구이 골목", "회센터 수조 앞", "영도대교가 보이는 바닷가");
+    }
+
+    @Test
+    @DisplayName("모든 씬이 대본(script)을 갖는다 — 없으면 플레이어가 '준비 중' 플레이스홀더로 떨어진다")
+    void everySceneHasScript() {
+        assertThat(ep01Scenes()).allSatisfy(s ->
+                assertThat(s.getScript()).isNotBlank());
+    }
+
+    @Test
+    @DisplayName("대본이 잘리지 않고 통째로 저장된다 (varchar(8000) — 최장 씬 약 1,990자)")
+    void scriptIsNotTruncated() {
+        List<Scene> scenes = ep01Scenes();
+
+        // 컬럼 폭이 줄면 DB가 조용히 끝을 자른다 — 마지막 문장으로 꼬리까지 확인한다.
+        assertThat(scenes.get(1).getScript()).hasSizeGreaterThan(1900)
+                .endsWith("이제 곰장어 굽는 냄새를 따라가 볼까요. 골목 안쪽으로, 천천히.");
+        assertThat(scenes.get(4).getScript())
+                .endsWith("원래 그런 분들이거든요. 다음에 또... 오이소.");
+    }
+
+    @Test
     @DisplayName("S3 낭독(45초) < S3→S4 도보(약 60초) — 트리거 충돌 없음 (큐시트 B-1 근거)")
     void s3NarrationFitsBeforeS4() {
         List<Scene> scenes = ep01Scenes();

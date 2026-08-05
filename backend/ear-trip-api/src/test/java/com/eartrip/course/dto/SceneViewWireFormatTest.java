@@ -20,10 +20,11 @@ class SceneViewWireFormatTest {
 
     private static Scene scene(TriggerType type, Integer dwellSec) {
         return Scene.builder()
-                .id(3L).sceneOrder(3).title("버려지던 것들")
+                .id(3L).sceneOrder(3).title("버려지던 것들").landmark("곰장어 구이 골목")
                 .lat(35.0968).lng(129.0300).radiusM(20)
                 .triggerType(type).dwellSec(dwellSec).estimatedSec(45)
                 .audioUrl("/audio/ep01_s3.mp3")
+                .script("냄새 먼저 도착하셨죠.")
                 .build();
     }
 
@@ -53,5 +54,32 @@ class SceneViewWireFormatTest {
         assertThat(json).contains("\"triggerType\":\"dwell\"");
         assertThat(json).contains("\"locked\":true");
         assertThat(json).contains("\"audioUrl\":null");
+    }
+
+    @Test
+    @DisplayName("잠금 씬은 대본을 내려주지 않는다 — 자막만 읽어도 콘텐츠를 다 가져가므로")
+    void lockedSceneHidesScript() throws Exception {
+        String json = mapper.writeValueAsString(CourseDtos.SceneView.of(scene(TriggerType.DWELL, 3), false));
+
+        assertThat(json).contains("\"script\":null");
+        assertThat(json).doesNotContain("냄새 먼저 도착하셨죠");
+    }
+
+    @Test
+    @DisplayName("해제된 씬은 대본을 내려준다")
+    void unlockedSceneCarriesScript() throws Exception {
+        String json = mapper.writeValueAsString(CourseDtos.SceneView.of(scene(TriggerType.DWELL, 3), true));
+
+        assertThat(json).contains("냄새 먼저 도착하셨죠");
+    }
+
+    @Test
+    @DisplayName("landmark는 잠금 여부와 무관하게 내려준다 — 보행 안내(NEXT STOP)에 필요")
+    void landmarkAlwaysExposed() throws Exception {
+        String locked = mapper.writeValueAsString(CourseDtos.SceneView.of(scene(TriggerType.DWELL, 3), false));
+        String unlocked = mapper.writeValueAsString(CourseDtos.SceneView.of(scene(TriggerType.DWELL, 3), true));
+
+        assertThat(locked).contains("\"landmark\":\"곰장어 구이 골목\"");
+        assertThat(unlocked).contains("\"landmark\":\"곰장어 구이 골목\"");
     }
 }
