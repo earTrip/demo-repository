@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+// PlayerScreen과 같은 이유 — react-native의 SafeAreaView는 안드로이드에서 no-op이라
+// 하단 CTA('코스 재생하기')가 시스템 내비게이션 바에 깔린다.
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchCourse } from '../api/courseApi';
 import { HERO_IMAGES } from '../data/mockCourses';
 import { colors, radius, shadow, regionTint } from '../theme';
