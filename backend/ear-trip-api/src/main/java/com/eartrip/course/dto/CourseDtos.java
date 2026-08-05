@@ -1,35 +1,65 @@
 package com.eartrip.course.dto;
 
 import com.eartrip.course.domain.Course;
+import com.eartrip.course.domain.EventType;
 import com.eartrip.course.domain.Scene;
+import com.eartrip.course.domain.TriggerType;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
 public class CourseDtos {
 
+    /** hero: 앱 번들 사진 키. 빠뜨리면 홈 카드가 사진 없이 배경색만 남는다 (HomeScreen.js). */
     public record Summary(Long id, String title, String subtitle, String region,
-                          int durationMin, double distanceKm, int sceneCount, String thumb) {
+                          int durationMin, double distanceKm, int sceneCount,
+                          String thumb, String hero) {
         public static Summary from(Course c) {
             return new Summary(c.getId(), c.getTitle(), c.getSubtitle(), c.getRegion(),
-                    c.getDurationMin(), c.getDistanceKm(), c.getScenes().size(), c.getThumbKey());
+                    c.getDurationMin(), c.getDistanceKm(), c.getScenes().size(),
+                    c.getThumbKey(), c.getHeroKey());
         }
     }
 
     /**
-     * 상세 응답 — 잠금 씬은 audioUrl을 내리지 않는다 (서버 측 프리미엄 강제).
-     * locked=true인 씬은 좌표·제목만 노출해 지도의 자물쇠 핀으로 사용.
+     * 상세 응답 — 잠금 씬은 audioUrl·script를 내리지 않는다 (서버 측 프리미엄 강제).
+     * locked=true인 씬은 좌표·제목·지점명만 노출해 지도의 자물쇠 핀과 다음 지점 안내로 쓴다.
+     *
+     * script는 오디오와 같은 값을 가진 판매 콘텐츠다 — 잠금 씬에 실어 보내면
+     * 자막만 읽어도 에피소드 내용을 다 가져갈 수 있어 페이월이 무의미해진다.
+     * landmark는 반대로 항상 내려준다: 보행 안내(NEXT STOP)에 필요하고 콘텐츠 가치가 없다.
+     *
+     * triggerType/dwellSec은 클라이언트 geo.js의 트래커가 그대로 읽는 계약이다
+     * (큐시트 B-1). 빠뜨리면 전 씬이 진입 즉시로 떨어져 밀집 지역 오탐 방지가 사라진다.
      */
-    public record SceneView(Long sceneId, int order, String title,
+    public record SceneView(Long sceneId, int order, String title, String landmark,
                             double lat, double lng, int radiusM,
-                            boolean locked, String audioUrl) {
+                            TriggerType triggerType, Integer dwellSec, Integer estimatedSec,
+                            boolean locked, String audioUrl, String script) {
         public static SceneView of(Scene s, boolean unlocked) {
             boolean locked = !unlocked;
-            return new SceneView(s.getId(), s.getSceneOrder(), s.getTitle(),
+            return new SceneView(s.getId(), s.getSceneOrder(), s.getTitle(), s.getLandmark(),
                     s.getLat(), s.getLng(), s.getRadiusM(),
-                    locked, locked ? null : s.getAudioUrl());
+                    s.getTriggerType(), s.getDwellSec(), s.getEstimatedSec(),
+                    locked, locked ? null : s.getAudioUrl(), locked ? null : s.getScript());
         }
     }
 
+    /**
+     * hero/description/tags는 상세 화면(CourseDetailScreen.js)이 그리는 값이다.
+     * 빠지면 히어로 사진이 사라지고 소개가 '준비 중'으로, 태그가 지역명으로 떨어진다.
+     */
     public record Detail(Long id, String title, String region, int durationMin,
-                         double distanceKm, boolean owned, List<SceneView> scenes) {}
+                         double distanceKm, boolean owned,
+                         String hero, String description, List<String> tags,
+                         List<SceneView> scenes) {}
+
+    /** 완주율 계측 이벤트 기록 요청 (모바일 오프라인 이벤트 큐가 posting) */
+    public record PlaybackEventRequest(
+            @NotNull String sessionId,
+            Integer sceneOrder,   // COURSE_* 이벤트는 null 허용
+            @NotNull EventType eventType
+    ) {}
+
+    public record CourseStats(long starts, long completions, double completionRate) {}
 }

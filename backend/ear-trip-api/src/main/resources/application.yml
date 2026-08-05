@@ -3,19 +3,31 @@ spring:
     active: local
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
+  flyway:
+    enabled: true
   sql:
     init:
       mode: always
       data-locations: classpath:data.sql
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Supabase 프로젝트 생성 후 실제 project-ref로 교체.
+          # 프로젝트가 구형(공유 HS256 시크릿) 방식이면 jwk-set-uri 대신
+          # SecurityConfig에서 NimbusJwtDecoder.withSecretKey(...)로 전환할 것.
+          jwk-set-uri: ${SUPABASE_JWKS_URI:https://jbadsywwxhtijhbhadal.supabase.co/auth/v1/.well-known/jwks.json}
 
 toss:
   secret-key: ${TOSS_SECRET_KEY:test_sk_XXXXXXXXXXXXXXXX}
 
 app:
   cors:
-    frontend: ${FRONTEND_ORIGIN:http://localhost:5173}
+    # 쉼표로 여러 오리진 허용. 개발 기본값은 웹 프론트엔드(Vite :5173) + Expo 웹(:8081).
+    # 운영은 FRONTEND_ORIGIN으로 실제 도메인만 넘길 것.
+    frontend: ${FRONTEND_ORIGIN:http://localhost:5173,http://localhost:8081}
 
 ---
 spring:
@@ -35,9 +47,6 @@ spring:
     url: jdbc:mysql://${DB_HOST:localhost}:3306/eartrip
     username: ${DB_USER}
     password: ${DB_PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: validate
   sql:
     init:
       mode: never

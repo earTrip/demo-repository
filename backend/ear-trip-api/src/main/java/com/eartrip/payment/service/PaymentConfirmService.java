@@ -1,83 +1,43 @@
 package com.eartrip.payment.service;
 
-import com.eartrip.payment.domain.Payment;
-import com.eartrip.payment.domain.Product;
-import com.eartrip.payment.domain.PurchaseOrder;
 import com.eartrip.payment.infra.TossPaymentsClient;
-import com.eartrip.payment.repository.PaymentRepository;
-import com.eartrip.payment.repository.ProductRepository;
-import com.eartrip.payment.repository.PurchaseOrderRepository;
+import com.eartrip.payment.service.PaymentConfirmProcessor.ClaimResult;
+import com.eartrip.payment.service.PaymentConfirmProcessor.ClaimStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 
-import java.time.LocalDateTime;
-
+/**
+ * successUrl 콜백 오케스트레이션 (트랜잭션 없음 — DB 단계는 Processor가 담당).
+ * 순서: 클레임(잠금·멱등·금액검증, tx1) → 토스 승인(HTTP, tx 밖) → 결과 기록(tx2)
+ */
 @Service
 @RequiredArgsConstructor
 public class PaymentConfirmService {
 
-    private final PurchaseOrderRepository orderRepository;
-    private final ProductRepository productRepository;
-    private final PaymentRepository paymentRepository;
-    private final EntitlementService entitlementService;
+    private final PaymentConfirmProcessor processor;
     private final TossPaymentsClient tossClient;
 
-    /**
-     * successUrl 콜백 처리.
-     * 순서: 멱등 체크 → 주문·금액 검증 → 토스 승인 → 기록 → 이용권 발급
-     */
-    @Transactional
     public void confirm(String paymentKey, String orderId, int amount) {
-        if (paymentRepository.existsByOrderId(orderId)) return; // 멱등
+        ClaimResult claim = processor.claim(orderId, amount);
 
-        PurchaseOrder order = findPendingOrder(orderId);
-        validateAmount(order, amount);
-
-        TossPaymentsClient.TossConfirmResponse res = approve(order, paymentKey, amount);
-
-        savePayment(res);
-        order.markPaid();
-        grantEntitlements(order);
-    }
-
-    private PurchaseOrder findPendingOrder(String orderId) {
-        PurchaseOrder order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("주문 없음: " + orderId));
-        if (!order.isPending()) throw new IllegalStateException("이미 처리된 주문: " + orderId);
-        return order;
-    }
-
-    private void validateAmount(PurchaseOrder order, int clientAmount) {
-        if (!order.amountMatches(clientAmount)) {
-            order.markFailed();
-            throw new IllegalStateException("결제 금액 불일치 (위변조 의심): " + order.getOrderId());
+        if (claim.status() == ClaimStatus.ALREADY_DONE) return; // 멱등
+        if (claim.status() == ClaimStatus.TAMPERED) {
+            // FAILED는 이미 tx1에서 커밋됨 — 예외는 그 후에 던져야 안전
+            throw new IllegalStateException("결제 금액 불일치 (위변조 의심): " + orderId);
         }
-    }
 
-    private TossPaymentsClient.TossConfirmResponse approve(PurchaseOrder order, String paymentKey, int amount) {
+        TossPaymentsClient.TossConfirmResponse res;
         try {
-            return tossClient.confirm(paymentKey, order.getOrderId(), amount);
+            res = tossClient.confirm(paymentKey, orderId, amount);
+        } catch (HttpClientErrorException e) {
+            processor.recordFailure(orderId, true);   // 토스 거절: 확정 실패
+            throw new IllegalStateException("토스 승인 거절: " + orderId, e);
         } catch (RuntimeException e) {
-            order.markFailed();
+            processor.recordFailure(orderId, false);  // 일시 장애: 재시도 가능하게 복귀
             throw e;
         }
-    }
 
-    private void savePayment(TossPaymentsClient.TossConfirmResponse res) {
-        paymentRepository.save(Payment.builder()
-                .paymentKey(res.paymentKey())
-                .orderId(res.orderId())
-                .amount(res.totalAmount())
-                .method(res.method())
-                .rawStatus(res.status())
-                .approvedAt(LocalDateTime.now())
-                .build());
-    }
-
-    private void grantEntitlements(PurchaseOrder order) {
-        Product product = productRepository.findById(order.getProductCode())
-                .orElseThrow(() -> new IllegalStateException("상품 없음: " + order.getProductCode()));
-        entitlementService.grantAll(order.getUserId(), product.getCourseIds(), order.getOrderId());
+        processor.recordSuccess(orderId, res);
     }
 }

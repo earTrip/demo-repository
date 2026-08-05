@@ -37,10 +37,16 @@ export async function fetchCourse(id) {
   };
 }
 
-export async function postEvent(courseId, type, sceneId = null) {
+/**
+ * 완주율 계측 이벤트 기록.
+ * 바디는 백엔드 CourseDtos.PlaybackEventRequest(sessionId, sceneOrder, eventType)가 정본 —
+ * sessionId/eventType은 @NotNull이라 이름이 어긋나면 400이다. 필드명을 임의로 바꾸지 말 것.
+ * (occurredAt은 서버가 PlaybackEvent.of에서 직접 찍으므로 보내지 않는다.)
+ */
+export async function postEvent(courseId, eventType, sceneOrder = null, sessionId = null) {
   return safeFetch(`${BASE}/api/courses/${courseId}/events`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, sceneId, occurredAt: new Date().toISOString() }),
+    body: JSON.stringify({ sessionId, sceneOrder, eventType }),
   });
 }

@@ -7,3 +7,18 @@ build/
 Thumbs.db
 .env
 .env.local
+.env.*.local
+.playwright-mcp/
+
+# 테스트 산출물 (재생성 가능)
+playwright-report/
+test-results/
+
+# 키/인증서 (전역 방어 — mobile/.gitignore와 중복이어도 루트에서 한 번 더 차단)
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist

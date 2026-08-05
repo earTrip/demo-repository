@@ -4,6 +4,7 @@ export async function prefetchAudio(scenes) {
   const srcMap = new Map(); // sceneId -> 재생 가능한 src
   await Promise.all(
     scenes.map(async (s) => {
+      if (!s.audioUrl) return; // 잠금 씬: 서버가 audioUrl을 내리지 않음
       try {
         const res = await fetch(s.audioUrl);
         const blob = await res.blob();

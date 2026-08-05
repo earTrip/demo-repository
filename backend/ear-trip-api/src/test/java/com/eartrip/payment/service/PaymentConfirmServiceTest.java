@@ -1,81 +1,97 @@
 package com.eartrip.payment.service;
 
-import com.eartrip.payment.domain.Product;
-import com.eartrip.payment.domain.PurchaseOrder;
 import com.eartrip.payment.infra.TossPaymentsClient;
-import com.eartrip.payment.repository.PaymentRepository;
-import com.eartrip.payment.repository.ProductRepository;
-import com.eartrip.payment.repository.PurchaseOrderRepository;
+import com.eartrip.payment.service.PaymentConfirmProcessor.ClaimResult;
+import com.eartrip.payment.service.PaymentConfirmProcessor.ClaimStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Optional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+/** 오케스트레이션 검증: 클레임 → 토스 승인 → 기록의 순서·실패 분기 */
 @ExtendWith(MockitoExtension.class)
 class PaymentConfirmServiceTest {
 
-    @Mock PurchaseOrderRepository orderRepository;
-    @Mock ProductRepository productRepository;
-    @Mock PaymentRepository paymentRepository;
-    @Mock EntitlementService entitlementService;
+    @Mock PaymentConfirmProcessor processor;
     @Mock TossPaymentsClient tossClient;
     @InjectMocks PaymentConfirmService service;
 
-    private static final Product EP01 =
-            Product.builder().code("EP01").name("새벽, 자갈치").price(6900).courseIds(List.of(1L)).active(true).build();
+    private static final TossPaymentsClient.TossConfirmResponse DONE =
+            new TossPaymentsClient.TossConfirmResponse("pk-1", "order-1", "DONE", "카드", 6900, "2026-07-16T12:00:00");
 
-    private PurchaseOrder pendingOrder() {
-        return PurchaseOrder.create("order-1", "device-1", EP01);
+    @Test
+    @DisplayName("이미 승인된 주문(ALREADY_DONE)은 토스 호출 없이 조용히 반환한다(멱등)")
+    void idempotentConfirm() {
+        given(processor.claim("order-1", 6900)).willReturn(new ClaimResult(ClaimStatus.ALREADY_DONE));
+
+        service.confirm("pk-1", "order-1", 6900);
+
+        verifyNoInteractions(tossClient);
+        verify(processor, never()).recordSuccess(any(), any());
     }
 
     @Test
-    @DisplayName("금액 불일치(위변조)면 승인 호출 없이 실패 처리한다")
+    @DisplayName("금액 위변조(TAMPERED)면 FAILED 커밋 이후 예외를 던지고 토스를 호출하지 않는다")
     void rejectTamperedAmount() {
-        given(paymentRepository.existsByOrderId("order-1")).willReturn(false);
-        given(orderRepository.findById("order-1")).willReturn(Optional.of(pendingOrder()));
+        given(processor.claim("order-1", 100)).willReturn(new ClaimResult(ClaimStatus.TAMPERED));
 
         assertThatThrownBy(() -> service.confirm("pk-1", "order-1", 100))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("금액 불일치");
 
-        verify(tossClient, never()).confirm(any(), any(), anyInt());
-        verify(entitlementService, never()).grantAll(any(), any(), any());
+        verifyNoInteractions(tossClient);
     }
 
     @Test
-    @DisplayName("이미 승인된 orderId는 재호출해도 아무 일도 하지 않는다(멱등)")
-    void idempotentConfirm() {
-        given(paymentRepository.existsByOrderId("order-1")).willReturn(true);
+    @DisplayName("정상 승인: 클레임 → 토스 confirm → recordSuccess 순서로 수행한다")
+    void confirmSuccess() {
+        given(processor.claim("order-1", 6900)).willReturn(new ClaimResult(ClaimStatus.CLAIMED));
+        given(tossClient.confirm("pk-1", "order-1", 6900)).willReturn(DONE);
 
         service.confirm("pk-1", "order-1", 6900);
 
-        verify(tossClient, never()).confirm(any(), any(), anyInt());
-        verify(orderRepository, never()).findById(any());
+        var inOrder = inOrder(processor, tossClient);
+        inOrder.verify(processor).claim("order-1", 6900);
+        inOrder.verify(tossClient).confirm("pk-1", "order-1", 6900);
+        inOrder.verify(processor).recordSuccess(eq("order-1"), same(DONE));
     }
 
     @Test
-    @DisplayName("정상 승인 시 결제 기록 + 주문 PAID + 이용권 발급까지 수행한다")
-    void confirmGrantsEntitlement() {
-        PurchaseOrder order = pendingOrder();
-        given(paymentRepository.existsByOrderId("order-1")).willReturn(false);
-        given(orderRepository.findById("order-1")).willReturn(Optional.of(order));
-        given(productRepository.findById("EP01")).willReturn(Optional.of(EP01));
-        given(tossClient.confirm("pk-1", "order-1", 6900)).willReturn(
-                new TossPaymentsClient.TossConfirmResponse("pk-1", "order-1", "DONE", "카드", 6900, "2026-07-03T12:00:00"));
+    @DisplayName("토스가 4xx로 거절하면 FAILED 확정 기록 후 예외를 전파한다")
+    void tossRejection_marksFailedDefinitively() {
+        given(processor.claim("order-1", 6900)).willReturn(new ClaimResult(ClaimStatus.CLAIMED));
+        given(tossClient.confirm(any(), any(), anyInt()))
+                .willThrow(HttpClientErrorException.create(HttpStatus.BAD_REQUEST, "REJECT", null, null, null));
 
-        service.confirm("pk-1", "order-1", 6900);
+        assertThatThrownBy(() -> service.confirm("pk-1", "order-1", 6900))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("승인 거절");
 
-        assertThat(order.isPending()).isFalse();
-        verify(paymentRepository).save(argThat(p -> p.getPaymentKey().equals("pk-1")));
-        verify(entitlementService).grantAll("device-1", List.of(1L), "order-1");
+        verify(processor).recordFailure("order-1", true);
+        verify(processor, never()).recordSuccess(any(), any());
+    }
+
+    @Test
+    @DisplayName("네트워크 등 일시 장애면 PENDING 복귀(재시도 허용) 후 예외를 전파한다")
+    void transientFailure_revertsToPending() {
+        given(processor.claim("order-1", 6900)).willReturn(new ClaimResult(ClaimStatus.CLAIMED));
+        given(tossClient.confirm(any(), any(), anyInt()))
+                .willThrow(new ResourceAccessException("connect timeout"));
+
+        assertThatThrownBy(() -> service.confirm("pk-1", "order-1", 6900))
+                .isInstanceOf(ResourceAccessException.class);
+
+        verify(processor).recordFailure("order-1", false);
+        verify(processor, never()).recordSuccess(any(), any());
     }
 }

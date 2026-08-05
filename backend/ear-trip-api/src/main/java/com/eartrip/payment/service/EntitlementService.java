@@ -3,6 +3,7 @@ package com.eartrip.payment.service;
 import com.eartrip.payment.domain.Entitlement;
 import com.eartrip.payment.repository.EntitlementRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,14 +21,19 @@ public class EntitlementService {
 
     @Transactional
     public void grantAll(String userId, List<Long> courseIds, String orderId) {
-        courseIds.stream()
-                .filter(cid -> !entitlementRepository.existsByUserIdAndCourseId(userId, cid))
-                .forEach(cid -> entitlementRepository.save(Entitlement.builder()
+        for (Long cid : courseIds) {
+            if (entitlementRepository.existsByUserIdAndCourseId(userId, cid)) continue;
+            try {
+                entitlementRepository.save(Entitlement.builder()
                         .userId(userId)
                         .courseId(cid)
                         .orderId(orderId)
                         .grantedAt(LocalDateTime.now())
-                        .build()));
+                        .build());
+            } catch (DataIntegrityViolationException e) {
+                // 동시 발급 레이스: unique(userId, courseId) 제약이 최종 방어선 — 이미 보유이므로 무시
+            }
+        }
     }
 
     @Transactional(readOnly = true)
