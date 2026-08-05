@@ -41,7 +41,11 @@ public class CourseController {
         Course c = courseRepository.findByIdWithScenes(id)
                 .orElseThrow(() -> new IllegalArgumentException("코스 없음: " + id));
 
-        boolean owned = entitlementService.hasAccess(jwt.getSubject(), id);
+        // jwt는 보통 null이 아니다(이 엔드포인트는 인증 필수). 개발 스위치
+        // app.dev.permit-anonymous-course-detail=true일 때만 null로 들어오며,
+        // 그 경우 보유 코스가 없는 비로그인 사용자로 취급한다 — 무료 씬만 열린다.
+        String userId = jwt != null ? jwt.getSubject() : null;
+        boolean owned = userId != null && entitlementService.hasAccess(userId, id);
 
         List<CourseDtos.SceneView> scenes = c.getScenes().stream()
                 .map(s -> CourseDtos.SceneView.of(s,

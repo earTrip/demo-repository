@@ -25,7 +25,9 @@ toss:
 
 app:
   cors:
-    frontend: ${FRONTEND_ORIGIN:http://localhost:5173}
+    # 쉼표로 여러 오리진 허용. 개발 기본값은 웹 프론트엔드(Vite :5173) + Expo 웹(:8081).
+    # 운영은 FRONTEND_ORIGIN으로 실제 도메인만 넘길 것.
+    frontend: ${FRONTEND_ORIGIN:http://localhost:5173,http://localhost:8081}
 
 ---
 spring:
