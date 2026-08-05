@@ -214,8 +214,10 @@ export default function PlayerScreen({ route, navigation }) {
       : trackingStatus === 'denied' ? '위치 권한이 필요합니다'
         : status === 'completed' ? '코스를 완주했습니다' : '위치 확인 중...';
 
+  // NEXT STOP과 같은 지점명(landmark)을 쓴다 — 보행 중엔 서사용 씬 제목보다
+  // "지금 어디에 서 있는지"가 먼저다. landmark가 없는 코스는 title로 폴백.
   const sceneTitle = currentScene
-    ? `SCENE ${currentScene.order} · ${currentScene.title}`
+    ? `SCENE ${currentScene.order} · ${currentScene.landmark ?? currentScene.title}`
     : status === 'completed' ? '완주' : '출발 전';
 
   return (
@@ -244,7 +246,9 @@ export default function PlayerScreen({ route, navigation }) {
           <View style={styles.nextCard} pointerEvents="none">
             <Text style={styles.nextLabel}>NEXT STOP</Text>
             <Text style={styles.nextTitle} numberOfLines={1}>
-              {nextScene.title}{nextDist ? ` · ${nextDist}` : ''}
+              {/* 보행 안내라 서사용 씬 제목이 아니라 실제 지점명(landmark)을 띄운다.
+                  백엔드 코스에는 아직 landmark가 없어 없으면 title로 폴백. */}
+              {nextScene.landmark ?? nextScene.title}{nextDist ? ` · ${nextDist}` : ''}
             </Text>
           </View>
         )}
