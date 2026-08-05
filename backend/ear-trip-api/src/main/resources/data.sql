@@ -1,6 +1,17 @@
 -- EP.01 자갈치 (판매 중) — 좌표: 통합작업문서 7-2
-INSERT INTO course (id, title, subtitle, region, duration_min, distance_km, thumb_key) VALUES
-  (1, '새벽, 자갈치', '자갈치 · EP.01', '자갈치', 28, 1.1, 'market');
+-- hero_key: 앱 번들 사진 키 (HERO_IMAGES 매핑과 1:1). 비면 홈·상세에서 사진이 사라진다.
+INSERT INTO course (id, title, subtitle, region, duration_min, distance_km, thumb_key, hero_key, description) VALUES
+  (1, '새벽, 자갈치', '자갈치 · EP.01', '자갈치', 28, 1.1, 'market', 'jagalchi',
+   '부산에서 시장이라고 하면 가장 먼저 떠오르는 이름, 바로 자갈치 시장입니다. 새벽 세 시, 남들이 가장 깊이 잠든 시간에 하루를 여는 사람들의 이야기를 따라 걷습니다.
+
+파도에 닳아 동글동글해진 자갈이 깔려 있던 자리에 좌판을 펴면서 시작된 이름 "자갈치". 다섯 개의 지점을 지나며 시장의 백 년을 귀로 듣는 코스입니다.');
+
+INSERT INTO course_tags (course_id, tags) VALUES
+  (1, '부산'), (1, '중구'), (1, '자갈치'), (1, '자갈치시장'), (1, '수산시장');
+
+-- 준비 중인 코스 5개(EP.02~04 · 해운대 · 서면)는 여기가 아니라 V6 마이그레이션이 시드한다.
+-- Flyway가 이 파일보다 먼저 돌면서 로컬 DB에도 실제로 INSERT를 끝내므로, 여기서 또 넣으면
+-- PK 충돌로 부팅이 죽는다. UPDATE(V4·V5)는 빈 테이블을 조용히 스쳤지만 INSERT는 그렇지 않다.
 
 -- trigger_type/dwell_sec/estimated_sec: 큐시트 B-1 앱 필드.
 -- S3·S4는 59m 간격(S1↔S3 48m)으로 밀집해 3초 체류를 요구한다. 나머지는 이격이 커서 진입 즉시.

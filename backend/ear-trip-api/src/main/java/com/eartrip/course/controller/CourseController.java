@@ -53,7 +53,11 @@ public class CourseController {
                 .toList();
 
         return new CourseDtos.Detail(c.getId(), c.getTitle(), c.getRegion(),
-                c.getDurationMin(), c.getDistanceKm(), owned, scenes);
+                c.getDurationMin(), c.getDistanceKm(), owned,
+                // tags는 @ElementCollection(LAZY)이고 open-in-view=false라, 컬렉션 객체를 그대로
+                //넘기면 트랜잭션 종료 후 Jackson이 건드리는 순간 LazyInitializationException이 난다.
+                // 여기서 복사해 트랜잭션 안에서 초기화를 강제한다.
+                c.getHeroKey(), c.getDescription(), List.copyOf(c.getTags()), scenes);
     }
 
     /** 완주율 계측 이벤트 기록 — 모바일 오프라인 큐(eventQueue.js)가 posting */

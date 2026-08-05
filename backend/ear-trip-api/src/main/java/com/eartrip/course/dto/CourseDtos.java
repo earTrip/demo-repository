@@ -10,11 +10,14 @@ import java.util.List;
 
 public class CourseDtos {
 
+    /** hero: 앱 번들 사진 키. 빠뜨리면 홈 카드가 사진 없이 배경색만 남는다 (HomeScreen.js). */
     public record Summary(Long id, String title, String subtitle, String region,
-                          int durationMin, double distanceKm, int sceneCount, String thumb) {
+                          int durationMin, double distanceKm, int sceneCount,
+                          String thumb, String hero) {
         public static Summary from(Course c) {
             return new Summary(c.getId(), c.getTitle(), c.getSubtitle(), c.getRegion(),
-                    c.getDurationMin(), c.getDistanceKm(), c.getScenes().size(), c.getThumbKey());
+                    c.getDurationMin(), c.getDistanceKm(), c.getScenes().size(),
+                    c.getThumbKey(), c.getHeroKey());
         }
     }
 
@@ -42,8 +45,14 @@ public class CourseDtos {
         }
     }
 
+    /**
+     * hero/description/tags는 상세 화면(CourseDetailScreen.js)이 그리는 값이다.
+     * 빠지면 히어로 사진이 사라지고 소개가 '준비 중'으로, 태그가 지역명으로 떨어진다.
+     */
     public record Detail(Long id, String title, String region, int durationMin,
-                         double distanceKm, boolean owned, List<SceneView> scenes) {}
+                         double distanceKm, boolean owned,
+                         String hero, String description, List<String> tags,
+                         List<SceneView> scenes) {}
 
     /** 완주율 계측 이벤트 기록 요청 (모바일 오프라인 이벤트 큐가 posting) */
     public record PlaybackEventRequest(

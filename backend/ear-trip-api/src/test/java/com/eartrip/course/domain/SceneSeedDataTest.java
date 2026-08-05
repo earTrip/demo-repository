@@ -58,6 +58,17 @@ class SceneSeedDataTest {
     }
 
     @Test
+    @DisplayName("코스가 화면용 필드(사진 키·소개·태그)를 갖는다 — 없으면 홈·상세에서 사진이 사라진다")
+    void courseCarriesPresentationFields() {
+        var course = courseRepository.findByIdWithScenes(1L).orElseThrow();
+
+        // 앱의 HERO_IMAGES 키와 일치해야 한다. 오타면 조용히 사진만 안 뜬다.
+        assertThat(course.getHeroKey()).isEqualTo("jagalchi");
+        assertThat(course.getDescription()).contains("자갈치 시장입니다");
+        assertThat(course.getTags()).containsExactly("부산", "중구", "자갈치", "자갈치시장", "수산시장");
+    }
+
+    @Test
     @DisplayName("모든 씬이 지점명(landmark)을 갖는다 — 없으면 NEXT STOP이 서사용 제목으로 폴백된다")
     void everySceneHasLandmark() {
         assertThat(ep01Scenes()).map(Scene::getLandmark)
