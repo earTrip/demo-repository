@@ -20,18 +20,33 @@ const BASE = process.env.EXPO_PUBLIC_API_BASE ?? DEV_BASE;
 
 // 백엔드가 Supabase JWT를 요구함(SecurityConfig.java 참고). Supabase 프로젝트가 아직
 // 없으면 useAuthSession.init()이 세션 없이 fail-open하므로 토큰 없이 호출 → 401.
+/**
+ * 폴백은 "실패했을 때"가 아니라 "제때 응답이 없을 때"도 돌아야 한다.
+ * 닿을 수 없는 주소(예: 실기기에서의 10.0.2.2)는 연결 거부가 아니라 TCP 타임아웃까지
+ * 매달리는데, 그동안 fetch는 reject하지 않는다 — 화면은 빈 목록인 채로 몇 분을 서 있고
+ * 에러도 안 난다. 짧은 타임아웃을 걸어 폴백이 즉시 돌게 한다.
+ */
+const TIMEOUT_MS = 5000;
+
 async function api(path, options = {}) {
   const token = useAuthSession.getState().getAccessToken();
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** GET /api/courses는 공개 엔드포인트라 인증 없이도 뜨지만, 백엔드 자체가 안 뜬 경우 목 데이터로 폴백 */

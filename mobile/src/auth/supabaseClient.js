@@ -7,6 +7,14 @@ import { LargeSecureStore } from './LargeSecureStore';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://YOUR_PROJECT_REF.supabase.co';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'REPLACE_WITH_ANON_KEY';
 
+/**
+ * .env가 채워졌는지 여부. 플레이스홀더면 네트워크를 시도할 이유가 없다 —
+ * 시도하면 @supabase/auth-js가 실패를 console.error로 찍어 개발 중 빨간 박스가 뜨는데,
+ * 그 로그는 우리 catch보다 먼저 나와서 막을 수 없다. 호출을 안 하는 게 유일한 방법이다.
+ */
+export const isSupabaseConfigured =
+  !SUPABASE_URL.includes('YOUR_PROJECT_REF') && !SUPABASE_ANON_KEY.startsWith('REPLACE_WITH');
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     storage: new LargeSecureStore(),

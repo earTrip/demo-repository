@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { supabase } from './supabaseClient';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
+
+/**
+ * 세션당 1회만 시도한다. PlayerScreen이 마운트될 때마다 init()을 부르는데, Supabase가
+ * 안 뜬 상태면 그때마다 auth-js가 실패를 console.error로 찍어 빨간 박스가 다시 올라온다.
+ * 한 번 실패한 프로젝트가 같은 실행 중에 갑자기 살아나지도 않으므로 재시도할 이유가 없다.
+ */
+let attempted = false;
 
 /**
  * 익명 로그인으로 시작 → 구매 시점에 linkKakao()로 실제 계정에 연동(계획서 1절).
@@ -11,6 +18,16 @@ export const useAuthSession = create((set, get) => ({
   error: null,
 
   async init() {
+    if (attempted) return;
+    attempted = true;
+
+    if (!isSupabaseConfigured) {
+      // 미설정은 오류가 아니다 — 프로젝트 생성 전 단계이므로 조용히 인증 없이 진행한다.
+      console.warn('[auth] Supabase 미설정 — 인증 없이 진행합니다 (mobile/.env.example 참고).');
+      set({ session: null, loading: false });
+      return;
+    }
+
     set({ loading: true, error: null });
     try {
       const { data } = await supabase.auth.getSession();
